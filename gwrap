@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#set -x
+
+# https://github.com/toralf/tinderbox/blob/master/bin/bwrap.sh
+
+function gwrap() {
+    local append=(${@})
+    [ -z "$append" ] && append=(/bin/bahs -l)
+
+    local sandbox=(env -i
+        #PATH=/usr/sbin:/usr/bin:/sbin:/bin
+        #HOME=/root
+        SHELL=/bin/bash
+        TERM=linux
+        /usr/bin/bwrap
+            #--unshare-user
+            #--unshare-net
+            --unshare-cgroup
+            --unshare-ipc
+            --unshare-pid
+            --unshare-uts
+            --hostname $hostname
+            --die-with-parent
+            #--setenv MAILTO "${MAILTO:-tinderbox}"
+            --dev                           /dev
+            --perms 1777 --tmpfs            /dev/shm
+            --proc                          /proc
+            --tmpfs                         /run
+            --ro-bind   /sys                /sys
+            --perms 1777 --tmpfs            /tmp
+            --bind  /var/cache/distfiles    /var/cache/distfiles
+            --perms 1777 --tmpfs            /var/tmp/portage
+    )
+    sandbox+=(${append[@]})
+    #echo "${sandbox[@]}"
+
+    ("${sandbox[@]}")
+    local rc=$?
+    return $rc
+}
+
+gwrap_test() {
+    bwrap_append=(
+        --bind /usr     /usr
+        --bind /bin     /bin
+        --bind /lib64   /lib64
+    )
+    gwrap ${bwrap_append[@]} ${@}  #/usr/bin/emerge --info
+}
+
+gwrap_test ${@}
