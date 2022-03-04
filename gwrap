@@ -1,16 +1,23 @@
 #!/bin/bash
 
-#set -x
+set -x
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 # https://github.com/toralf/tinderbox/blob/master/bin/bwrap.sh
 
 function gwrap() {
-    local append=(${@})
-    [ -z "$append" ] && append=(/bin/bahs -l)
+    local rootfs=(${1})
+    [ -z "$rootfs" ] && echo "$rootfs is empty"
+
+    local append=(${2})
+    [ -z "$append" ] && append=(/bin/bash -l)
+
+    local hostname="${HOMENAME:-test}"
 
     local sandbox=(env -i
         #PATH=/usr/sbin:/usr/bin:/sbin:/bin
-        #HOME=/root
+        HOME=/root
         SHELL=/bin/bash
         TERM=linux
         /usr/bin/bwrap
@@ -23,6 +30,7 @@ function gwrap() {
             --hostname $hostname
             --die-with-parent
             #--setenv MAILTO "${MAILTO:-tinderbox}"
+            ${rootfs[@]}
             --dev                           /dev
             --perms 1777 --tmpfs            /dev/shm
             --proc                          /proc
@@ -31,22 +39,24 @@ function gwrap() {
             --perms 1777 --tmpfs            /tmp
             --bind  /var/cache/distfiles    /var/cache/distfiles
             --perms 1777 --tmpfs            /var/tmp/portage
+            --bind  "$SCRIPT_DIR/gentoo"    /var/db/repos/gentoo
+            ${append[@]}
     )
-    sandbox+=(${append[@]})
-    #echo "${sandbox[@]}"
 
     ("${sandbox[@]}")
     local rc=$?
     return $rc
 }
 
-gwrap_test() {
-    bwrap_append=(
-        --bind /usr     /usr
-        --bind /bin     /bin
-        --bind /lib64   /lib64
-    )
-    gwrap ${bwrap_append[@]} ${@}  #/usr/bin/emerge --info
-}
+#bwrap_rootfs="
+#    --bind /usr     /usr
+#    --bind /bin     /bin
+#    --bind /lib64   /lib64
+#"
+##gwrap "$bwrap_rootfs" "/bin/bash -l"
 
-gwrap_test ${@}
+#SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+#gwrap "--bind $SCRIPT_DIR/images/amd64-systemd-stable /" "${@}"
+
+gwrap "--bind $1 /" "${2}"
+
