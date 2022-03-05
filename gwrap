@@ -29,7 +29,8 @@ function gwrap() {
             --unshare-uts
             --hostname $hostname
             --die-with-parent
-            #--setenv MAILTO "${MAILTO:-tinderbox}"
+            --setenv https_proxy "${https_proxy}"
+            --setenv http_proxy "${http_proxy}"
             ${rootfs[@]}
             --dev                           /dev
             --perms 1777 --tmpfs            /dev/shm
