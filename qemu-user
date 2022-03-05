@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -xe
+
+ARCH={$ARCH:riscv64}
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+QEMU_IMAGE="$SCRIPT_DIR/qemu-images"
+
+rm -rf "$QEMU_IMAGE" && mkdir "$QEMU_IMAGE"
+QEMU_USER_TARGETS="$ARCH" USE="static-user static-libs" emerge --buildpkg --oneshot --noreplace qemu
+ROOT="$QEMU_IMAGE" emerge --usepkgonly --oneshot --nodeps --noreplace qemu
+
