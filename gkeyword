@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#set -x
+
+set -e
+#ACCEPT_KEYWORDS="~*" emerge --autounmask y --autounmask-continue y $@
+
+GENTOO_REPO="${GENTOO_REPO:-/var/db/repos/gentoo}"
+GKEYWORD="${GKEYWORD:-~riscv}"
+
+export NAMEVERSION="<category>/<name>/<name>-<version>.ebuild"
+
+#set -o pipefail;
+echo "try to keyword..."
+while :; do
+    emerge --pretend --empty $@ 2>&1 \
+        | grep 'masked by: missing keyword' \
+        | head -n 1 \
+        | awk '{print $2}' \
+        | xargs -i qatom -F "%{CATEGORY}/%{PN}" {} \
+        | xargs -i eix -I --format '<installedversions:NAMEVERSION>' {} \
+        | xargs -t -i ekeyword ${GKEYWORD} ${GENTOO_REPO}/{}
+
+    echo "${PIPESTATUS[@]}"
+    if [ ${PIPESTATUS[0]} -eq 0 ]; then
+        break
+    fi
+done
