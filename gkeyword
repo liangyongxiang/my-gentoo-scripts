@@ -1,17 +1,14 @@
 #!/bin/bash
 
 #set -x
-
 set -e
-#ACCEPT_KEYWORDS="~*" emerge --autounmask y --autounmask-continue y $@
 
 GENTOO_REPO="${GENTOO_REPO:-/var/db/repos/gentoo}"
 GKEYWORD="${GKEYWORD:-~riscv}"
-
 export NAMEVERSION="<category>/<name>/<name>-<version>.ebuild"
 
-#set -o pipefail;
-echo "try to keyword..."
+ACCEPT_KEYWORDS="~*" emerge --autounmask y --autounmask-continue y $@
+
 while :; do
     emerge --pretend --empty $@ 2>&1 \
         | grep 'masked by: missing keyword' \
@@ -26,3 +23,11 @@ while :; do
         break
     fi
 done
+
+git -C "${GENTOO_REPO}" status \
+    | grep -E 'modified:.*\/.*\/.*\.ebuild$' \
+    | tr -s ' ' \
+    | cut -d' ' -f 2 \
+    | xargs dirname \
+    | sort | uniq \
+    | xargs -i bash -c "echo try to commit {} && cd $GENTOO_REPO/{} && repoman full -dx -j $(nproc) && repoman commit -m \"{}: keyword ~riscv\""
