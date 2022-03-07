@@ -18,7 +18,6 @@ while :; do
         | xargs -i eix -I --format '<installedversions:NAMEVERSION>' {} \
         | xargs -t -i ekeyword ${GKEYWORD} ${GENTOO_REPO}/{}
 
-    echo "${PIPESTATUS[@]}"
     if [ ${PIPESTATUS[0]} -eq 0 ]; then
         break
     fi
